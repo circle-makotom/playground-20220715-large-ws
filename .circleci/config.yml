@@ -1,0 +1,40 @@
+version: 2.1
+
+commands:
+  work-on-the-large-file:
+    steps:
+      - run:
+          name: "Working on the large file: Calculating checksum"
+          command: md5sum urandom
+
+jobs:
+  job-1:
+    docker:
+      - image: ubuntu:rolling
+    steps:
+      - run:
+          name: Generating a dummy file
+          command: |
+            # 512 MiB
+            dd if=/dev/urandom of=urandom bs=16M count=32
+      - work-on-the-large-file
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  job-2:
+    docker:
+      - image: ubuntu:rolling
+    steps:
+      - attach_workspace:
+          at: .
+      - work-on-the-large-file
+
+workflows:
+  run:
+    jobs:
+      - job-1
+      - job-2:
+          requires:
+            - job-1
